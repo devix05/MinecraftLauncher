@@ -7,6 +7,7 @@ import requests
 import os
 import json
 import shutil
+import zipfile
 from PIL import Image
 from tkinter import filedialog, messagebox
 import webbrowser
@@ -103,6 +104,8 @@ TEXTS = {
         "all": "Alle",
         "refresh": "🔄 Aktualisieren",
         "install_modpack": "Installieren",
+        "installing_modpack": "Installiere Modpack...",
+        "modpack_installed": "Modpack erfolgreich installiert!",
         "instances_title": "INSTANZEN",
         "new_instance": "+ Neue Instanz",
         "import_instance": "📁 Instanz importieren",
@@ -203,6 +206,8 @@ TEXTS = {
         "all": "All",
         "refresh": "🔄 Refresh",
         "install_modpack": "Install",
+        "installing_modpack": "Installing modpack...",
+        "modpack_installed": "Modpack installed successfully!",
         "instances_title": "INSTANCES",
         "new_instance": "+ New Instance",
         "import_instance": "📁 Import Instance",
@@ -242,60 +247,101 @@ TEXTS = {
 }
 
 MODPACKS_DB = [
-    # Utility Mods
-    {"name": "🔊 Simple Voice Chat", "version": "1.20.4", "loader": "Fabric", "icon": "🎤", "description": "Proximity Voice Chat für Minecraft", "downloads": "2.5M", "category": "Utility"},
-    {"name": "📦 Just Enough Items (JEI)", "version": "1.20.4", "loader": "Fabric", "icon": "📋", "description": "Rezepte und Items anzeigen", "downloads": "45M", "category": "Utility"},
-    {"name": "🗺️ Xaero's Minimap", "version": "1.20.4", "loader": "Fabric", "icon": "🗺️", "description": "Minimap mit Wegpunkten", "downloads": "12M", "category": "Utility"},
-    {"name": "📊 MiniHUD", "version": "1.20.4", "loader": "Fabric", "icon": "📊", "description": "FPS, Koordinaten und mehr anzeigen", "downloads": "3.2M", "category": "Utility"},
-    {"name": "🔍 Waila / HWYLA", "version": "1.20.4", "loader": "Fabric", "icon": "🔍", "description": "Zeigt an was du anschaust", "downloads": "8.5M", "category": "Utility"},
-    {"name": "📦 Inventory Profiles Next", "version": "1.20.4", "loader": "Fabric", "icon": "📦", "description": "Automatisches Inventar-Management", "downloads": "4.2M", "category": "Utility"},
-    {"name": "🔍 Zoomify", "version": "1.20.4", "loader": "Fabric", "icon": "🔍", "description": "Zoom-Funktion", "downloads": "3.2M", "category": "Utility"},
-    {"name": "📸 Replay Mod", "version": "1.20.4", "loader": "Fabric", "icon": "🎥", "description": "Aufnahmen und Replays", "downloads": "3.5M", "category": "Utility"},
-    {"name": "🌍 WorldEdit", "version": "1.20.4", "loader": "Fabric", "icon": "🌍", "description": "Ingame Welt-Editier-Tools", "downloads": "6.2M", "category": "Utility"},
-    {"name": "📋 Litematica", "version": "1.20.4", "loader": "Fabric", "icon": "📐", "description": "Baupläne und Schematica", "downloads": "2.1M", "category": "Utility"},
-    # Performance Mods
-    {"name": "⚡ Sodium", "version": "1.20.4", "loader": "Fabric", "icon": "⚡", "description": "Extreme Performance Optimierung", "downloads": "18M", "category": "Performance"},
-    {"name": "🔦 Iris Shaders", "version": "1.20.4", "loader": "Fabric", "icon": "✨", "description": "Shader-Unterstützung", "downloads": "8.5M", "category": "Performance"},
-    {"name": "📦 Lithium", "version": "1.20.4", "loader": "Fabric", "icon": "🔋", "description": "Server-Performance Optimierung", "downloads": "12M", "category": "Performance"},
-    {"name": "💨 Starlight", "version": "1.20.4", "loader": "Fabric", "icon": "⭐", "description": "Bessere Lichtberechnung", "downloads": "5.8M", "category": "Performance"},
-    {"name": "🧲 FerriteCore", "version": "1.20.4", "loader": "Fabric", "icon": "🧲", "description": "Reduziert RAM-Nutzung", "downloads": "3.2M", "category": "Performance"},
-    # QoL Mods
-    {"name": "✨ Mouse Tweaks", "version": "1.20.4", "loader": "Fabric", "icon": "🐭", "description": "Verbesserte Maus-Steuerung", "downloads": "4.2M", "category": "QoL"},
-    {"name": "🍎 AppleSkin", "version": "1.20.4", "loader": "Fabric", "icon": "🍎", "description": "Bessere Nahrungs-Anzeige", "downloads": "3.8M", "category": "QoL"},
-    {"name": "📝 BetterF3", "version": "1.20.4", "loader": "Fabric", "icon": "📊", "description": "Schönere F3-Anzeige", "downloads": "2.5M", "category": "QoL"},
-    {"name": "💬 Chat Heads", "version": "1.20.4", "loader": "Fabric", "icon": "💬", "description": "Spieler-Köpfe im Chat", "downloads": "1.8M", "category": "QoL"},
-    # Visual Mods
-    {"name": "🎨 Complementary Shaders", "version": "1.20.4", "loader": "Fabric", "icon": "🎨", "description": "Wunderschöne Shader", "downloads": "5.2M", "category": "Visual"},
-    {"name": "🦊 Fresh Animations", "version": "1.20.4", "loader": "Fabric", "icon": "🦊", "description": "Verbesserte Animationen", "downloads": "2.8M", "category": "Visual"},
-    {"name": "🍂 Falling Leaves", "version": "1.20.4", "loader": "Fabric", "icon": "🍂", "description": "Fallende Blätter", "downloads": "950K", "category": "Visual"},
-    # Vanilla+ Modpacks
+    {"name": "🔊 Simple Voice Chat", "version": "1.20.4", "loader": "Fabric", "icon": "🎤", "description": "Proximity Voice Chat für Minecraft", "downloads": "2.5M", "category": "Utility", "modrinth_id": "voicechat"},
+    {"name": "📦 Just Enough Items (JEI)", "version": "1.20.4", "loader": "Fabric", "icon": "📋", "description": "Rezepte und Items anzeigen", "downloads": "45M", "category": "Utility", "modrinth_id": "jei"},
+    {"name": "🗺️ Xaero's Minimap", "version": "1.20.4", "loader": "Fabric", "icon": "🗺️", "description": "Minimap mit Wegpunkten", "downloads": "12M", "category": "Utility", "modrinth_id": "xaeros-minimap"},
+    {"name": "🗺️ Xaero's World Map", "version": "1.20.4", "loader": "Fabric", "icon": "🌍", "description": "Vollständige Weltkarte", "downloads": "8.5M", "category": "Utility", "modrinth_id": "xaeros-world-map"},
+    {"name": "📊 MiniHUD", "version": "1.20.4", "loader": "Fabric", "icon": "📊", "description": "FPS, Koordinaten und mehr anzeigen", "downloads": "3.2M", "category": "Utility", "modrinth_id": "minihud"},
+    {"name": "🔍 Waila / HWYLA", "version": "1.20.4", "loader": "Fabric", "icon": "🔍", "description": "Zeigt an was du anschaust", "downloads": "8.5M", "category": "Utility", "modrinth_id": "waila"},
+    {"name": "🔍 Jade", "version": "1.20.4", "loader": "Fabric", "icon": "💎", "description": "Moderne Alternative zu Waila", "downloads": "4.2M", "category": "Utility", "modrinth_id": "jade"},
+    {"name": "📦 Inventory Profiles Next", "version": "1.20.4", "loader": "Fabric", "icon": "📦", "description": "Automatisches Inventar-Management", "downloads": "4.2M", "category": "Utility", "modrinth_id": "inventory-profiles-next"},
+    {"name": "⌨️ Controlling", "version": "1.20.4", "loader": "Fabric", "icon": "⌨️", "description": "Bessere Tastenbelegung", "downloads": "1.8M", "category": "Utility", "modrinth_id": "controlling"},
+    {"name": "🔍 Zoomify", "version": "1.20.4", "loader": "Fabric", "icon": "🔍", "description": "Zoom-Funktion", "downloads": "3.2M", "category": "Utility", "modrinth_id": "zoomify"},
+    {"name": "📸 Replay Mod", "version": "1.20.4", "loader": "Fabric", "icon": "🎥", "description": "Aufnahmen und Replays", "downloads": "3.5M", "category": "Utility", "modrinth_id": "replay-mod"},
+    {"name": "🌍 WorldEdit", "version": "1.20.4", "loader": "Fabric", "icon": "🌍", "description": "Ingame Welt-Editier-Tools", "downloads": "6.2M", "category": "Utility", "modrinth_id": "worldedit"},
+    {"name": "📋 Litematica", "version": "1.20.4", "loader": "Fabric", "icon": "📐", "description": "Baupläne und Schematica", "downloads": "2.1M", "category": "Utility", "modrinth_id": "litematica"},
+    {"name": "🔧 Fabric API", "version": "1.20.4", "loader": "Fabric", "icon": "🔧", "description": "Basis für Fabric Mods", "downloads": "25M", "category": "Utility", "modrinth_id": "fabric-api"},
+    {"name": "📦 Mod Menu", "version": "1.20.4", "loader": "Fabric", "icon": "📋", "description": "Mod-Übersicht im Menü", "downloads": "8.2M", "category": "Utility", "modrinth_id": "modmenu"},
+    
+    {"name": "⚡ Sodium", "version": "1.20.4", "loader": "Fabric", "icon": "⚡", "description": "Extreme Performance Optimierung", "downloads": "18M", "category": "Performance", "modrinth_id": "sodium"},
+    {"name": "🔦 Iris Shaders", "version": "1.20.4", "loader": "Fabric", "icon": "✨", "description": "Shader-Unterstützung", "downloads": "8.5M", "category": "Performance", "modrinth_id": "iris"},
+    {"name": "📦 Lithium", "version": "1.20.4", "loader": "Fabric", "icon": "🔋", "description": "Server-Performance Optimierung", "downloads": "12M", "category": "Performance", "modrinth_id": "lithium"},
+    {"name": "🔄 Phosphor", "version": "1.20.4", "loader": "Fabric", "icon": "💡", "description": "Lighting Engine Optimierung", "downloads": "7.2M", "category": "Performance", "modrinth_id": "phosphor"},
+    {"name": "💨 Starlight", "version": "1.20.4", "loader": "Fabric", "icon": "⭐", "description": "Bessere Lichtberechnung", "downloads": "5.8M", "category": "Performance", "modrinth_id": "starlight"},
+    {"name": "🧲 FerriteCore", "version": "1.20.4", "loader": "Fabric", "icon": "🧲", "description": "Reduziert RAM-Nutzung", "downloads": "3.2M", "category": "Performance", "modrinth_id": "ferrite-core"},
+    {"name": "📊 Spark", "version": "1.20.4", "loader": "Fabric", "icon": "🔥", "description": "Performance Profiler", "downloads": "1.5M", "category": "Performance", "modrinth_id": "spark"},
+    {"name": "🎨 Enhanced Block Entities", "version": "1.20.4", "loader": "Fabric", "icon": "🎨", "description": "Optimierte Block-Entities", "downloads": "2.3M", "category": "Performance", "modrinth_id": "ebe"},
+    {"name": "⚡ CullLessLeaves", "version": "1.20.4", "loader": "Fabric", "icon": "🍃", "description": "Optimierte Blatt-Rendering", "downloads": "1.1M", "category": "Performance", "modrinth_id": "cull-less-leaves"},
+    {"name": "💨 Entity Culling", "version": "1.20.4", "loader": "Fabric", "icon": "👻", "description": "Unsichtbare Entities cullen", "downloads": "2.8M", "category": "Performance", "modrinth_id": "entityculling"},
+    
+    {"name": "✨ Mouse Tweaks", "version": "1.20.4", "loader": "Fabric", "icon": "🐭", "description": "Verbesserte Maus-Steuerung", "downloads": "4.2M", "category": "QoL", "modrinth_id": "mouse-tweaks"},
+    {"name": "🍎 AppleSkin", "version": "1.20.4", "loader": "Fabric", "icon": "🍎", "description": "Bessere Nahrungs-Anzeige", "downloads": "3.8M", "category": "QoL", "modrinth_id": "appleskin"},
+    {"name": "🛠️ Tool Stats", "version": "1.20.4", "loader": "Fabric", "icon": "🛠️", "description": "Werkzeug-Informationen", "downloads": "1.2M", "category": "QoL", "modrinth_id": "tool-stats"},
+    {"name": "📝 BetterF3", "version": "1.20.4", "loader": "Fabric", "icon": "📊", "description": "Schönere F3-Anzeige", "downloads": "2.5M", "category": "QoL", "modrinth_id": "betterf3"},
+    {"name": "💬 Chat Heads", "version": "1.20.4", "loader": "Fabric", "icon": "💬", "description": "Spieler-Köpfe im Chat", "downloads": "1.8M", "category": "QoL", "modrinth_id": "chat-heads"},
+    {"name": "🔊 Sound Physics", "version": "1.20.4", "loader": "Fabric", "icon": "🔊", "description": "Realistischere Sound-Effekte", "downloads": "1.2M", "category": "QoL", "modrinth_id": "sound-physics"},
+    {"name": "🌙 Night Vision", "version": "1.20.4", "loader": "Fabric", "icon": "🌙", "description": "Toggle Night Vision", "downloads": "900K", "category": "QoL", "modrinth_id": "night-vision"},
+    {"name": "🚀 Boosted Brightness", "version": "1.20.4", "loader": "Fabric", "icon": "☀️", "description": "Extra Helligkeitsstufen", "downloads": "750K", "category": "QoL", "modrinth_id": "boosted-brightness"},
+    
+    {"name": "🎨 Complementary Shaders", "version": "1.20.4", "loader": "Fabric", "icon": "🎨", "description": "Wunderschöne Shader", "downloads": "5.2M", "category": "Visual", "modrinth_id": "complementary-shaders"},
+    {"name": "🦊 Fresh Animations", "version": "1.20.4", "loader": "Fabric", "icon": "🦊", "description": "Verbesserte Animationen", "downloads": "2.8M", "category": "Visual", "modrinth_id": "fresh-animations"},
+    {"name": "🖼️ Continuity", "version": "1.20.4", "loader": "Fabric", "icon": "🖼️", "description": "Connected Textures", "downloads": "1.5M", "category": "Visual", "modrinth_id": "continuity"},
+    {"name": "🌿 Better Clouds", "version": "1.20.4", "loader": "Fabric", "icon": "☁️", "description": "Schönere Wolken", "downloads": "1.2M", "category": "Visual", "modrinth_id": "better-clouds"},
+    {"name": "🍂 Falling Leaves", "version": "1.20.4", "loader": "Fabric", "icon": "🍂", "description": "Fallende Blätter", "downloads": "950K", "category": "Visual", "modrinth_id": "falling-leaves"},
+    {"name": "✨ Visuality", "version": "1.20.4", "loader": "Fabric", "icon": "✨", "description": "Atmosphärische Effekte", "downloads": "800K", "category": "Visual", "modrinth_id": "visuality"},
+    {"name": "🎨 BSL Shaders", "version": "1.20.4", "loader": "Fabric", "icon": "🎨", "description": "Beliebte Shader", "downloads": "4.5M", "category": "Visual", "modrinth_id": "bsl-shaders"},
+    {"name": "🌟 SEUS Shaders", "version": "1.20.4", "loader": "Fabric", "icon": "🌟", "description": "Realistische Shader", "downloads": "3.8M", "category": "Visual", "modrinth_id": "seus"},
+    
     {"name": "Vanilla+", "version": "1.20.4", "loader": "Vanilla", "icon": "🎮", "description": "Verbesserte Vanilla Erfahrung", "downloads": "1.2M", "category": "Vanilla+"},
     {"name": "Vanilla Tweaks", "version": "1.20.4", "loader": "Vanilla", "icon": "🔧", "description": "Vanilla mit kleinen Verbesserungen", "downloads": "856K", "category": "Vanilla+"},
-    # Forge Modpacks
+    {"name": "Quality of Life", "version": "1.20.1", "loader": "Fabric", "icon": "✨", "description": "Nützliche Verbesserungen", "downloads": "523K", "category": "Vanilla+"},
+    
     {"name": "Better MC [FORGE]", "version": "1.20.1", "loader": "Forge", "icon": "⚔️", "description": "Das ultimative Vanilla+ Erlebnis", "downloads": "4.2M", "category": "Forge"},
     {"name": "RLCraft", "version": "1.12.2", "loader": "Forge", "icon": "🐉", "description": "Extrem schweres Survival", "downloads": "8.5M", "category": "Forge"},
     {"name": "SkyFactory 4", "version": "1.12.2", "loader": "Forge", "icon": "☁️", "description": "Baue deine Welt in der Sky", "downloads": "3.1M", "category": "Forge"},
     {"name": "All The Mods 9", "version": "1.20.1", "loader": "Forge", "icon": "🔮", "description": "Über 400 Mods", "downloads": "2.8M", "category": "Forge"},
     {"name": "Pixelmon Reforged", "version": "1.16.5", "loader": "Forge", "icon": "🎯", "description": "Pokémon in Minecraft", "downloads": "6.2M", "category": "Forge"},
-    # Fabric Modpacks
+    {"name": "Roguelike Adventures", "version": "1.16.5", "loader": "Forge", "icon": "🏰", "description": "Roguelike Dungeon Crawler", "downloads": "1.5M", "category": "Forge"},
+    {"name": "Medieval Minecraft", "version": "1.19.2", "loader": "Forge", "icon": "🏯", "description": "Mittelalterliches Fantasy", "downloads": "1.8M", "category": "Forge"},
+    {"name": "Create: Above and Beyond", "version": "1.18.2", "loader": "Forge", "icon": "🔧", "description": "Create Mod Quest Pack", "downloads": "1.2M", "category": "Forge"},
+    {"name": "Valhelsia 6", "version": "1.19.2", "loader": "Forge", "icon": "🌲", "description": "Exploration & Technologie", "downloads": "987K", "category": "Forge"},
+    {"name": "Enigmatica 9", "version": "1.19.2", "loader": "Forge", "icon": "❓", "description": "Quest-basiertes Modpack", "downloads": "1.1M", "category": "Forge"},
+    
     {"name": "Fabulously Optimized", "version": "1.20.4", "loader": "Fabric", "icon": "✨", "description": "Optimiertes Vanilla", "downloads": "3.2M", "category": "Fabric"},
     {"name": "Simply Optimized", "version": "1.20.4", "loader": "Fabric", "icon": "⚡", "description": "Nur Performance Mods", "downloads": "1.5M", "category": "Fabric"},
-    # Adventure Modpacks
+    {"name": "Create: Perfect World", "version": "1.20.1", "loader": "Fabric", "icon": "🔧", "description": "Create Mod + Optimierungen", "downloads": "856K", "category": "Fabric"},
+    {"name": "Better Minecraft [FABRIC]", "version": "1.20.1", "loader": "Fabric", "icon": "⚔️", "description": "Vanilla+ mit Fabric", "downloads": "1.2M", "category": "Fabric"},
+    {"name": "All of Fabric 6", "version": "1.19.2", "loader": "Fabric", "icon": "🔮", "description": "Großes Fabric Modpack", "downloads": "987K", "category": "Fabric"},
+    {"name": "Adventures in Fabric", "version": "1.20.1", "loader": "Fabric", "icon": "🗺️", "description": "Exploration & Abenteuer", "downloads": "456K", "category": "Fabric"},
+    {"name": "Fabric Skyblock", "version": "1.19.2", "loader": "Fabric", "icon": "☁️", "description": "Skyblock mit Fabric Mods", "downloads": "234K", "category": "Fabric"},
+    
     {"name": "Craft to Exile 2", "version": "1.20.1", "loader": "Forge", "icon": "🗡️", "description": "ARPG Experience", "downloads": "678K", "category": "Adventure"},
+    {"name": "Dimension Hopper", "version": "1.19.2", "loader": "Fabric", "icon": "🌌", "description": "Dimensionen erkunden", "downloads": "123K", "category": "Adventure"},
+    {"name": "The Betweenlands", "version": "1.12.2", "loader": "Forge", "icon": "🌿", "description": "Düstere Sumpfwelt", "downloads": "890K", "category": "Adventure"},
     {"name": "Vault Hunters 3", "version": "1.18.2", "loader": "Forge", "icon": "🏛️", "description": "RPG Dungeon Crawler", "downloads": "1.2M", "category": "Adventure"},
-    # Skyblock Modpacks
+    
+    {"name": "Nomifactory", "version": "1.12.2", "loader": "Forge", "icon": "🏭", "description": "GregTech-basiert", "downloads": "456K", "category": "Technology"},
+    {"name": "Compact Claustrophobia", "version": "1.16.5", "loader": "Forge", "icon": "📦", "description": "Skyblock in einem Raum", "downloads": "234K", "category": "Technology"},
+    {"name": "Mechanical Mastery", "version": "1.18.2", "loader": "Forge", "icon": "⚙️", "description": "Automatisierung Fokus", "downloads": "156K", "category": "Technology"},
+    
     {"name": "SkyFactory 5", "version": "1.20.1", "loader": "Forge", "icon": "☁️", "description": "Neueste SkyFactory", "downloads": "567K", "category": "Skyblock"},
+    {"name": "Project Ozone 4", "version": "1.12.2", "loader": "Forge", "icon": "🌌", "description": "Extrem Skyblock", "downloads": "789K", "category": "Skyblock"},
     {"name": "Stoneblock 3", "version": "1.18.2", "loader": "Forge", "icon": "🪨", "description": "In einem Steinblock", "downloads": "1.1M", "category": "Skyblock"},
-    # Challenging Modpacks
-    {"name": "SevTech: Ages", "version": "1.12.2", "loader": "Forge", "icon": "📜", "description": "Fortschritt durch Zeitalter", "downloads": "1.4M", "category": "Challenging"},
+    
     {"name": "GregTech: New Horizons", "version": "1.7.10", "loader": "Forge", "icon": "🏭", "description": "Extrem schweres Technik", "downloads": "890K", "category": "Challenging"},
-    # Magic Modpacks
+    {"name": "SevTech: Ages", "version": "1.12.2", "loader": "Forge", "icon": "📜", "description": "Fortschritt durch Zeitalter", "downloads": "1.4M", "category": "Challenging"},
+    {"name": "Rebirth of the Night", "version": "1.12.2", "loader": "Forge", "icon": "🌙", "description": "Survival Herausforderung", "downloads": "456K", "category": "Challenging"},
+    
     {"name": "Ars Nouveau", "version": "1.20.1", "loader": "Forge", "icon": "📖", "description": "Zauberei & Magie", "downloads": "345K", "category": "Magic"},
-    # Lightweight Modpacks
+    {"name": "Bewitchment", "version": "1.19.2", "loader": "Fabric", "icon": "🧙", "description": "Hexerei & Magie", "downloads": "234K", "category": "Magic"},
+    {"name": "Iron's Spells", "version": "1.20.1", "loader": "Forge", "icon": "⚡", "description": "Zauber & Sprüche", "downloads": "456K", "category": "Magic"},
+    
     {"name": "FPS Boost", "version": "1.20.4", "loader": "Fabric", "icon": "⚡", "description": "Nur Performance", "downloads": "2.1M", "category": "Lightweight"},
+    {"name": "QoL+", "version": "1.20.4", "loader": "Fabric", "icon": "✨", "description": "Nützliche Mods", "downloads": "456K", "category": "Lightweight"},
+    {"name": "Minimal", "version": "1.20.4", "loader": "Vanilla", "icon": "🎮", "description": "Minimalistisch", "downloads": "234K", "category": "Lightweight"},
 ]
 
-MODPACK_CATEGORIES = ["Alle", "Utility", "Performance", "QoL", "Visual", "Vanilla+", "Forge", "Fabric", "Adventure", "Skyblock", "Challenging", "Magic", "Lightweight"]
+MODPACK_CATEGORIES = ["Alle", "Utility", "Performance", "QoL", "Visual", "Vanilla+", "Forge", "Fabric", "Adventure", "Technology", "Skyblock", "Challenging", "Magic", "Lightweight"]
 
 
 class MinecraftLauncher:
@@ -844,8 +890,60 @@ class MinecraftLauncher:
         self.modpacks = MODPACKS_DB.copy()
         self.display_modpacks()
     
+    def download_mod_from_modrinth(self, mod_id, version, loader):
+        """Mod von Modrinth herunterladen"""
+        try:
+            api_url = f"https://api.modrinth.com/v2/project/{mod_id}/version"
+            response = requests.get(api_url, timeout=10)
+            if response.status_code == 200:
+                versions = response.json()
+                for v in versions:
+                    if v["game_versions"][0] == version and loader.lower() in [l.lower() for l in v["loaders"]]:
+                        for file in v["files"]:
+                            return file["url"]
+            return None
+        except Exception as e:
+            print(f"Modrinth Download Fehler: {e}")
+            return None
+    
     def install_modpack(self, pack):
-        messagebox.showinfo("Info", f"Modpack {pack['name']} wird installiert...\n(Demo-Funktion)")
+        """Modpack wirklich installieren"""
+        def install_thread():
+            try:
+                mod_folder = os.path.join(self.minecraft_dir, "mods")
+                os.makedirs(mod_folder, exist_ok=True)
+                
+                self.window.after(0, lambda: messagebox.showinfo(
+                    "Installiere Mod",
+                    f"📦 {pack['name']}\n\nVersion: {pack['version']}\nLoader: {pack['loader']}\n\nDownload wird gestartet..."
+                ))
+                
+                if "modrinth_id" in pack:
+                    download_url = self.download_mod_from_modrinth(pack["modrinth_id"], pack["version"], pack["loader"])
+                    if download_url:
+                        response = requests.get(download_url, stream=True, timeout=30)
+                        filename = f"{pack['name'].replace(' ', '_').replace('🔊', '').replace('📦', '').replace('🗺️', '').replace('📊', '').replace('🔍', '').replace('✨', '').strip()}_{pack['version']}.jar"
+                        filepath = os.path.join(mod_folder, filename)
+                        
+                        with open(filepath, "wb") as f:
+                            for chunk in response.iter_content(chunk_size=8192):
+                                f.write(chunk)
+                        
+                        self.window.after(0, lambda: messagebox.showinfo(
+                            self.t("success"), 
+                            f"✅ {pack['name']} wurde erfolgreich installiert!\n\nSpeicherort: {mod_folder}\n\nStarte Minecraft neu, um die Mod zu aktivieren."
+                        ))
+                        return
+                
+                self.window.after(0, lambda: messagebox.showinfo(
+                    "Manuelle Installation",
+                    f"📦 {pack['name']}\n\nLade die Mod manuell herunter:\n🔗 https://modrinth.com/mod/{pack.get('modrinth_id', pack['name'].lower().replace(' ', '-'))}\n\nVersion: {pack['version']}\nLoader: {pack['loader']}\n\nLege die .jar Datei in:\n📁 {mod_folder}"
+                ))
+                
+            except Exception as e:
+                self.window.after(0, lambda: messagebox.showerror(self.t("error"), f"Fehler bei der Installation:\n{str(e)}"))
+        
+        threading.Thread(target=install_thread, daemon=True).start()
     
     def update_all_texts(self):
         nav_map = {"dashboard":"nav_dashboard","play":"nav_play","skin":"nav_skin","versions":"nav_versions","modpacks":"nav_modpacks","instances":"nav_instances","settings":"nav_settings","stats":"nav_stats"}
