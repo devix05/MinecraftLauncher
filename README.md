@@ -1,6 +1,6 @@
 # ⛏️ Minecraft Launcher
 
-> A modern Minecraft launcher built with Python
+> A simple Minecraft launcher built with Python
 
 ![Python](https://img.shields.io/badge/Python-3.13-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)
