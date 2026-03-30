@@ -8,19 +8,6 @@
 
 ---
 
-## 📖 Table of Contents
-
-- [Features](#-features)
-- [Installation](#-installation)
-- [How to Use](#-how-to-use)
-- [Building as EXE](#-building-as-exe)
-- [Language Support](#-language-support)
-- [Technologies Used](#-technologies-used)
-- [Project Structure](#-project-structure)
-- [License](#-license)
-
----
-
 ## ✨ Features
 
 ### 🎮 Game Management
