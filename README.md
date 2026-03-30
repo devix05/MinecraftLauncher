@@ -1,4 +1,4 @@
-# ⛏️ Minecraft Modern Launcher
+# ⛏️ Minecraft Launcher
 
 > A powerful, feature-rich Minecraft launcher built with Python
 
