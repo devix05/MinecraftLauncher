@@ -3,7 +3,6 @@
 > A powerful, feature-rich Minecraft launcher built with Python
 
 ![Python](https://img.shields.io/badge/Python-3.13-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)
 ![CustomTkinter](https://img.shields.io/badge/GUI-CustomTkinter-orange.svg)
 
@@ -91,5 +90,5 @@ Download Python from [python.org](https://python.org) and make sure to check **"
 
 ### Step 2: Clone or Download
 ```bash
-git clone https://github.com/yourusername/minecraft-modern-launcher.git
-cd minecraft-modern-launcher
+git clone https://github.com/devix05/MinedcraftLauncher.git
+cd MinecraftLauncher
