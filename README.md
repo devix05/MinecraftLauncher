@@ -72,5 +72,5 @@ Download Python from [python.org](https://python.org) and check **"Add Python to
 
 ### Step 2: Clone or Download
 ```bash
-git clone https://github.com/devix05/MinedcraftLauncher.git
-cd MinedcraftLauncher
+git clone https://github.com/devix05/MinecraftLauncher.git
+cd MinecraftLauncher
